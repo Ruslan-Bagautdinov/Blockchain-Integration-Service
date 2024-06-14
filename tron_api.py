@@ -1,5 +1,5 @@
 from fastapi import HTTPException, APIRouter
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, field_validator
 from typing import Optional
 
@@ -14,8 +14,8 @@ tron_api = APIRouter(prefix='/tron_api', tags=['tron_api'])
 
 class TransactionsQuery(BaseModel):
 
-    wallet: str
-    own_wallet: str
+    from_wallet: str
+    to_wallet: str
     amount: str
     date_start: Optional[str] = None
     date_end: Optional[str] = None
@@ -53,9 +53,8 @@ async def get_transactions(item: TransactionsQuery):
 
     TRONGRID_API_URL = 'https://api.trongrid.io/v1'     # Can be changed anytime by Trongrid API !
 
-
-    wallet = item.wallet
-    own_wallet = item.own_wallet
+    from_wallet = item.from_wallet
+    to_wallet = item.to_wallet
     amount = item.amount
     date_start = item.date_start
     date_end = item.date_end
@@ -76,7 +75,7 @@ async def get_transactions(item: TransactionsQuery):
         else:
             date_end_dt = datetime.datetime.strptime(date_end, "%d-%m-%Y %H:%M:%S")
 
-        url = f"{TRONGRID_API_URL}/accounts/{wallet}/transactions/trc20"
+        url = f"{TRONGRID_API_URL}/accounts/{from_wallet}/transactions/trc20"
 
         params = {
             'only_confirmed': only_confirmed,
@@ -106,7 +105,7 @@ async def get_transactions(item: TransactionsQuery):
             from_address = transaction.get('from', '')
             to_address = transaction.get('to', '')
 
-            if from_address == wallet and to_address == own_wallet and value == amount_int:
+            if from_address == from_wallet and to_address == to_wallet and value == amount_int:
                 return JSONResponse(status_code=200, content={"answer": True})
 
         return JSONResponse(status_code=200, content={"answer": False})
