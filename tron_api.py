@@ -53,7 +53,6 @@ async def get_transactions(item: TransactionsQuery):
 
     TRONGRID_API_URL = 'https://api.trongrid.io/v1'     # Can be changed anytime by Trongrid API !
 
-    JOB_WALLET = 'TYHYJg53oUnA6PHhgCeqHtXU1SiV3Czy61'
 
     wallet = item.wallet
     own_wallet = item.own_wallet
@@ -92,8 +91,6 @@ async def get_transactions(item: TransactionsQuery):
 
         amount_int = float(amount)
 
-        # answer = []
-
         for transaction in response_data:
 
             contract_data = transaction.get('token_info', {})
@@ -108,15 +105,6 @@ async def get_transactions(item: TransactionsQuery):
 
             from_address = transaction.get('from', '')
             to_address = transaction.get('to', '')
-
-            # string = {}
-            # string['from_address'] = from_address
-            # string['to_address'] = to_address
-            # string['value'] = value
-            # string['currency'] = currency
-            # answer.append(string)
-            #
-            # return JSONResponse(status_code=200, content={"answer": answer})
 
             if from_address == wallet and to_address == own_wallet and value == amount_int:
                 return JSONResponse(status_code=200, content={"answer": True})
