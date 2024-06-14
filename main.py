@@ -1,13 +1,11 @@
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
-from tether_api import tether_api
-from tronscan_api import tronscan_api
+from tron_api import tron_api
 
 
 app = FastAPI()
-app.include_router(tether_api)
-app.include_router(tronscan_api)
+app.include_router(tron_api)
 
 
 @app.get("/")
