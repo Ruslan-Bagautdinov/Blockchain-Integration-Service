@@ -13,9 +13,9 @@ tron_api = APIRouter(prefix='/tron_api', tags=['tron_api'])
 
 
 class TransactionsQuery(BaseModel):
-    from_wallet: str = Field(..., description="The wallet address from which the transactions are sent.")
-    to_wallet: str = Field(..., description="The wallet address to which the transactions are sent.")
-    amount: str = Field(..., description="The amount of the transaction.")
+    from_wallet: str = Field(None, description="The wallet address from which the transactions are sent.")
+    to_wallet: str = Field(None, description="The wallet address to which the transactions are sent.")
+    amount: str = Field(None, description="The amount of the transaction.")
     date_start: Optional[str] = Field(None, description="The start date for the transaction query in the format 'dd-mm-yyyy HH:MM:SS'.")
     date_end: Optional[str] = Field(None, description="The end date for the transaction query in the format 'dd-mm-yyyy HH:MM:SS'.")
     limit: Optional[int] = Field(20, description="The maximum number of transactions to return.")
@@ -94,6 +94,8 @@ async def get_transactions(item: TransactionsQuery):
 
         for transaction in response_data:
 
+            transaction_id = transaction.get('transaction_id', '')
+
             contract_data = transaction.get('token_info', {})
 
             currency = contract_data.get('symbol', '')
@@ -108,9 +110,19 @@ async def get_transactions(item: TransactionsQuery):
             to_address = transaction.get('to', '')
 
             if (from_wallet is None or from_address == from_wallet) and to_address == to_wallet and value == amount_int:
-                return JSONResponse(status_code=200, content={"answer": True})
+                return JSONResponse(status_code=200,
+                                    content={"answer": True,
+                                             "transaction_id": transaction_id,
+                                             "from_address": from_address
+                                             }
+                                    )
 
-        return JSONResponse(status_code=200, content={"answer": False})
+        return JSONResponse(status_code=200,
+                            content={"answer": False,
+                                     "transaction_id": None,
+                                     "from_address": None
+                                     }
+                            )
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail="Invalid date format. Please use 'dd-mm-yyyy HH:MM:SS'")
