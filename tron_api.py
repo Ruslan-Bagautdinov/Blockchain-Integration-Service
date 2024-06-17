@@ -1,6 +1,6 @@
 from fastapi import HTTPException, APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 import datetime
@@ -13,14 +13,13 @@ tron_api = APIRouter(prefix='/tron_api', tags=['tron_api'])
 
 
 class TransactionsQuery(BaseModel):
-
-    from_wallet: str
-    to_wallet: str
-    amount: str
-    date_start: Optional[str] = None
-    date_end: Optional[str] = None
-    limit: Optional[int] = 20
-    only_confirmed: Optional[bool] = True
+    from_wallet: str = Field(..., description="The wallet address from which the transactions are sent.")
+    to_wallet: str = Field(..., description="The wallet address to which the transactions are sent.")
+    amount: str = Field(..., description="The amount of the transaction.")
+    date_start: Optional[str] = Field(None, description="The start date for the transaction query in the format 'dd-mm-yyyy HH:MM:SS'.")
+    date_end: Optional[str] = Field(None, description="The end date for the transaction query in the format 'dd-mm-yyyy HH:MM:SS'.")
+    limit: Optional[int] = Field(20, description="The maximum number of transactions to return.")
+    only_confirmed: Optional[bool] = Field(True, description="Whether to return only confirmed transactions.")
 
     @field_validator('amount')
     def validate_amount(cls, value):
@@ -65,6 +64,9 @@ async def get_transactions(item: TransactionsQuery):
         # Set default values for date_start and date_end if not provided
         now = datetime.datetime.now()
 
+        if from_wallet == "string":
+            from_wallet = None
+
         if date_start is None or date_start == "string":
             date_start_dt = now - datetime.timedelta(hours=6)  # 6 hours ago
         else:
@@ -75,7 +77,7 @@ async def get_transactions(item: TransactionsQuery):
         else:
             date_end_dt = datetime.datetime.strptime(date_end, "%d-%m-%Y %H:%M:%S")
 
-        url = f"{TRONGRID_API_URL}/accounts/{from_wallet}/transactions/trc20"
+        url = f"{TRONGRID_API_URL}/accounts/{to_wallet}/transactions/trc20"
 
         params = {
             'only_confirmed': only_confirmed,
@@ -105,7 +107,7 @@ async def get_transactions(item: TransactionsQuery):
             from_address = transaction.get('from', '')
             to_address = transaction.get('to', '')
 
-            if from_address == from_wallet and to_address == to_wallet and value == amount_int:
+            if (from_wallet is None or from_address == from_wallet) and to_address == to_wallet and value == amount_int:
                 return JSONResponse(status_code=200, content={"answer": True})
 
         return JSONResponse(status_code=200, content={"answer": False})
