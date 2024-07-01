@@ -1,47 +1,13 @@
 from fastapi import HTTPException, APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional
 
 import datetime
 import requests
 
-import qrcode
-import io
+from schemas.schemas import TransactionsQuery
+
 
 tron_api = APIRouter(prefix='/tron_api', tags=['tron_api'])
-
-
-class TransactionsQuery(BaseModel):
-    from_wallet: str = Field(None, description="The wallet address from which the transactions are sent.")
-    to_wallet: str = Field(None, description="The wallet address to which the transactions are sent.")
-    amount: str = Field(None, description="The amount of the transaction.")
-    date_start: Optional[str] = Field(None, description="The start date for the transaction query in the format 'dd-mm-yyyy HH:MM:SS'.")
-    date_end: Optional[str] = Field(None, description="The end date for the transaction query in the format 'dd-mm-yyyy HH:MM:SS'.")
-    limit: Optional[int] = Field(20, description="The maximum number of transactions to return.")
-    only_confirmed: Optional[bool] = Field(True, description="Whether to return only confirmed transactions.")
-
-    @field_validator('amount')
-    def validate_amount(cls, value):
-        try:
-            float(value)
-        except ValueError:
-            raise ValueError("Amount must be a valid number")
-        return value
-
-    @field_validator('date_start', 'date_end')
-    def validate_date(cls, value, field):
-        if value is not None and value != "string":
-            try:
-                datetime.datetime.strptime(value, "%d-%m-%Y %H:%M:%S")
-            except ValueError:
-                raise ValueError(f"{field.name} must be in the format 'dd-mm-yyyy HH:MM:SS'")
-        return value
-
-
-class QRcodeQuery(BaseModel):
-
-    wallet: str
 
 
 @tron_api.post("/transactions/")
@@ -135,29 +101,3 @@ async def get_transactions(item: TransactionsQuery):
     except requests.exceptions.RequestException:
         raise HTTPException(status_code=500, detail="An error occurred while connecting to Trongrid API")
 
-
-@tron_api.post("/qr_code/")
-async def generate_trc20_qr_code(item: QRcodeQuery):
-
-    tron_wallet_address = item.wallet
-
-    payload = f"{tron_wallet_address}"
-
-    # Generate the QR code
-    qr = qrcode.main.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(payload)
-    qr.make(fit=True)
-
-    # Create an image from the QR code instance with a transparent background
-    img = qr.make_image(fill_color="black", back_color="transparent")
-
-    buffer = io.BytesIO()
-    img.save(buffer)
-    buffer.seek(0)
-
-    return StreamingResponse(buffer, media_type="image/png")
